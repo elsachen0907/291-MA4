@@ -1,10 +1,10 @@
-
+# Name: Elsa Chen
 
 import sqlite3
 import matplotlib.pyplot as plt
 import time
 import random
-import numpy as np
+# import numpy as np
 
 connection = None
 cursor = None
@@ -17,9 +17,11 @@ def multi_bar_chart(values1, values2, values3, labels, title):
 
     width = 0.35
     fig, ax = plt.subplots()
+    bottoms = [a+b for a,b in zip(values1, values2)]
     ax.bar(labels, values1, width, label="Uninformed")
-    ax.bar(labels, values2, width, label="Self-Optimized",bottom=values1)
-    ax.bar(labels, values3, width, label="User-Optimized",bottom=np.array(values2)+np.array(values1))
+    ax.bar(labels, values2, width, label="Self-Optimized", bottom=values1)
+    ax.bar(labels, values3, width, label="User-Optimized", bottom=bottoms)
+
 
     # label x and y axis
     plt.xticks(range(len(labels)), labels)
@@ -58,7 +60,6 @@ def get_random_PostalCode():
     random_PostalCode = random.choice(distinct_postal_code)
     return random_PostalCode
 
-
 def run50_query():
     global connection, cursor
     start = time.time() 
@@ -77,15 +78,11 @@ def run50_query():
     result = end - start
     return result
     
-    
-    # # get result
-    # result = cursor.fetchone()[0]
-    # connection.commit()
-    # return result
+
 
 # scenario 1
 def uninformed():
-    # global connection, cursor
+    global connection, cursor
     # disable the SQLites' auto indexing
     cursor.execute('PRAGMA automatic_index = FALSE;')
     
@@ -118,7 +115,7 @@ def uninformed():
 
 # scenario 2
 def self_optimized():
-    # global connection, cursor
+    global connection, cursor
     # enable the auto-indexing for scenario 2
     cursor.execute('PRAGMA automatic_index = TRUE;')
     cursor.execute('''DROP TABLE Customers;''')
@@ -167,7 +164,9 @@ def user_optimized():
     cursor.execute('''ALTER TABLE Order_items RENAME TO Order_itemsOriginal;''')
     cursor.execute('''ALTER TABLE NewOrder_items RENAME TO Order_items;''')
 
-    cursor.execute('CREATE INDEX Idx2 ON  Orders (order_id,customer_id);')
+    # create the index here
+    cursor.execute('CREATE INDEX Idx1 ON  Orders (order_id, customer_id);')
+    # cursor.execute('CREATE INDEX Idx2 ON  Orders (customer_id);')
     return
 
    
@@ -203,7 +202,6 @@ def db_user_optimized(path):
 
 def main():
     global connection, cursor
-
     paths = ["./A3Small.db", "./A3Medium.db", "./A3Large.db"]
     uninformed_time = []
     self_optimized_time = []
@@ -218,15 +216,19 @@ def main():
         user_optimized_time.append(user_optimized_ms)
 
     labels = ['SmallDB', 'MediumDB', 'LargeDB']
+    
+    # use log to plot the y values(reasons explained in README)
     import math
     for i in range(3):
         uninformed_time[i] = math.log(uninformed_time[i] ) 
         self_optimized_time[i] = math.log(self_optimized_time[i] ) 
         user_optimized_time[i] = math.log(user_optimized_time[i] ) 
+
+    # print out the time in log(ms)
     print(uninformed_time)
     print(self_optimized_time)
     print(user_optimized_time)
-    multi_bar_chart(uninformed_time, self_optimized_time, user_optimized_time, labels, 'Q3 Runtime (ms)')
+    multi_bar_chart(uninformed_time, self_optimized_time, user_optimized_time, labels, 'Q3 (Runtime in log(ms))')
     return
 
 if __name__ == "__main__":
